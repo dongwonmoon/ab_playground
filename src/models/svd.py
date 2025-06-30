@@ -51,13 +51,18 @@ class SVD(BaseModel):
         if self._model is None:
             raise ValueError("Model has not been trained yet. Call train() first.")
 
-        predictions = []
-        for _, row in data.iterrows():
-            pred = self._model.predict(uid=row["userId"], iid=row["movieId"])
-            predictions.append(pred.est)
+        reader = Reader(rating_scale=(0.5, 5))
+        test_data = Dataset.load_from_df(data[["userId", "movieId"]], reader)
+        testset = test_data.build_full_trainset().build_testset()
+
+        predictions = self._model.test(testset)
+        pred_map = {(pred.uid, pred.iid): pred.est for pred in predictions}
 
         result_df = data.copy()
-        result_df["prediction"] = predictions
+        result_df["prediction"] = result_df.apply(
+            lambda row: pred_map.get((row["userId"], row["movieId"])), axis=1
+        )
+
         return result_df
 
     def _create_mlflow_wrapper(self):
