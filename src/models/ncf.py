@@ -53,7 +53,7 @@ class NCF(BaseModel, nn.Module):
             avg_loss = total_loss / len(loader)
             print(f"Epoch {epoch+1}/{epochs}, Average Loss: {avg_loss:.4f}")
 
-            mlflow.log_metric("train_loss(MSE)", avg_loss, step=epoch)
+            mlflow.log_metric("train_loss_MSE", avg_loss, step=epoch)
 
         self._model = self
         print("NCF model training complete.")
