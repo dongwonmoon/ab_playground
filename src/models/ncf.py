@@ -5,19 +5,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 
 from src.models.base_model import BaseModel
-
-
-class CustomDataset(Dataset):
-    def __init__(self, df: pd.DataFrame):
-        self.users = torch.tensor(df["userId"].values, dtype=torch.long)
-        self.movies = torch.tensor(df["movieId"].values, dtype=torch.long)
-        self.ratings = torch.tensor(df["rating"].values, dtype=torch.float32)
-
-    def __len__(self):
-        return len(self.users)
-
-    def __getitem__(self, index):
-        return self.users[index], self.movies[index], self.ratings[index]
+from src.data.datasets import CustomDataset
 
 
 class NCF(BaseModel, nn.Module):

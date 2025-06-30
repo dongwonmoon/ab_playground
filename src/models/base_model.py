@@ -45,7 +45,7 @@ class BaseModel(ABC):
             raise ValueError("Model has not been trained yet. Call train() first.")
         return self._model
 
-    def log_to_mlflow(self, experiment_name: str, run_name: str):
+    def log_to_mlflow(self, run_name: str):
         """
         학습된 모델과 파라미터를 MLflow에 로깅함.
         MLFlow는 running 중인 상태를 가정.
@@ -54,7 +54,6 @@ class BaseModel(ABC):
             experiment_name (str): MLflow 실험 이름
             run_name (str): 이번 실행의 이름
         """
-        mlflow.set_experiment(experiment_name)
         print(f"Logging parameters and model for {run_name}...")
         mlflow.log_params(self.params)
 
@@ -63,6 +62,6 @@ class BaseModel(ABC):
         print(f"Successfully logged model for {run_name}.")
 
     @abstractmethod
-    def _log_model_to_mlflow(self, artifact_path: str):
+    def _log_model_to_mlflow(self, run_name: str):
         """각 자식 클래스가 자신의 타입(pytorch, python, ...)에 맞게 모델 로깅 구현"""
         pass
