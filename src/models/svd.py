@@ -1,7 +1,9 @@
+import numpy as np
 import pandas as pd
 import mlflow
 from surprise import SVD as SurpriseSVD
 from surprise import Reader, Dataset
+from surprise.model_selection import cross_validate
 
 from src.models.base_model import BaseModel
 
@@ -32,8 +34,21 @@ class SVD(BaseModel):
         reader = Reader(rating_scale=(0.5, 5))
         # 데이터 구조를 알고 있다는 가정 하에 작성.
         train_data = Dataset.load_from_df(data[["userId", "movieId", "rating"]], reader)
-        trainset = train_data.build_full_trainset()
 
+        print("Performing 5-fold cross-validataion...")
+        cv_results = cross_validate(
+            self._model, data, measures=["RMSE", "MAE"], cv=5, verbose=True
+        )
+
+        mean_rmse = np.mean(cv_results["test_rmse"])
+        mean_mae = np.mean(cv_results["test_mae"])
+
+        print(
+            f"Cross-validation results: Mean RMSE={mean_rmse:.4f}, Mean MAE={mean_mae:.4f}"
+        )
+        mlflow.log_metrics({"svd_mean_rmse": mean_rmse, "svd_mean_mae": mean_mae})
+
+        trainset = train_data.build_full_trainset()
         self._model = SurpriseSVD(**self.params)
         self._model.fit(trainset)
         print("SVD model training complete.")
