@@ -1,0 +1,30 @@
+# 데이터 경로 설정
+data:
+  processed_path: "data/processed/ratings_clean.parquet"
+  train_data_path: "data/processed/train_data.parquet"
+  test_data_path: "data/processed/test_data.parquet"
+
+# MLflow 설정
+mlflow:
+  tracking_uri: "http://127.0.0.1:5000"
+  experiment_name: "Movie Recommender - SVD vs NCF Training"
+
+# 모델별 하이퍼파라미터
+models:
+  svd:
+    params:
+      n_factors: 50
+      n_epochs: 20
+      random_state: 42
+  ncf:
+    params:
+      epochs: 5
+      batch_size: 256
+      learning_rate: 0.001
+      embedding_dim: 32
+
+# 시뮬레이션 설정
+simulation:
+  test_size: 0.2
+  top_k: 10
+  success_threshold: 2.0
