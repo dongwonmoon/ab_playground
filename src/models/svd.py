@@ -37,7 +37,11 @@ class SVD(BaseModel):
 
         print("Performing 5-fold cross-validataion...")
         cv_results = cross_validate(
-            self._model, data, measures=["RMSE", "MAE"], cv=5, verbose=True
+            SurpriseSVD(**self.params),
+            train_data,
+            measures=["RMSE", "MAE"],
+            cv=5,
+            verbose=True,
         )
 
         mean_rmse = np.mean(cv_results["test_rmse"])
