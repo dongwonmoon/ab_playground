@@ -55,7 +55,6 @@ class NCF(BaseModel, nn.Module):
 
             mlflow.log_metric("train_loss_MSE", avg_loss, step=epoch)
 
-        self._model = self
         print("NCF model training complete.")
 
     def forward(self, user_indices, movie_indices):
@@ -90,6 +89,6 @@ class NCF(BaseModel, nn.Module):
         """NCF 모델을 로깅"""
         print("Using mlflow.pytorch.log_model for NCF...")
         mlflow.pytorch.log_model(
-            pytorch_model=self.get_model(),
+            pytorch_model=self,
             name=run_name,
         )
