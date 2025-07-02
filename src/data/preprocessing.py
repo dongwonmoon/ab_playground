@@ -8,6 +8,11 @@ def mapping_id_to_unique(df: pd.DataFrame, target_df: pd.DataFrame):
     Args:
         df (DataFrame): 전체 데이터프레임
         target_df: 매핑 로직을 적용할 데이터프레임
+
+    Return:
+        num_users: unique users in df
+        num_movies: unique movies in df
+        target_df: Mapped DataFrame
     """
     unique_users = df["userId"].unique()
     unique_movies = df["movieId"].unique()
