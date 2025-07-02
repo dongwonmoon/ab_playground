@@ -8,6 +8,19 @@ from src.models.base_model import BaseModel
 from src.data.datasets import CustomDataset
 
 
+class NCFWrapper(mlflow.pyfunc.PythonModel):
+    """
+    NCF 모델을 MLflow pyfunc 표준에 맞게 감싸는 래퍼.
+    pyfunc의 predict 요청을 NCF 모델의 자체 predict 메서드로 연결.
+    """
+
+    def __init__(self, model):
+        self.model = model
+
+    def predict(self, context, model_input: pd.DataFrame):
+        return self.model.predict(model_input)
+
+
 class NCF(BaseModel, nn.Module):
     """NCF 모델. BaseModel을 상속받음."""
 
@@ -25,7 +38,7 @@ class NCF(BaseModel, nn.Module):
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
-    def train_model(self, data: pd.DataFrame):  # nn.Module의 train함수와 겹침 방지
+    def train_model(self, data: pd.DataFrame):
         """NCF 모델을 학습"""
         print("Training NCF model...")
 
@@ -54,7 +67,7 @@ class NCF(BaseModel, nn.Module):
             print(f"Epoch {epoch+1}/{epochs}, Average Loss: {avg_loss:.4f}")
 
             mlflow.log_metric("train_loss_MSE", avg_loss, step=epoch)
-
+        self._trained = True
         print("NCF model training complete.")
 
     def forward(self, user_indices, movie_indices):
@@ -68,9 +81,9 @@ class NCF(BaseModel, nn.Module):
 
     def predict(self, data: pd.DataFrame) -> pd.DataFrame:
         """학습된 모델로 예측을 수행함."""
-        if self._model is None:
+        if not self._trained:
             raise ValueError(
-                "Model has not been trained yet. call train_model() first."
+                "Model has not been trained yet. Call train_model() first."
             )
 
         self.eval()
@@ -80,7 +93,6 @@ class NCF(BaseModel, nn.Module):
 
         with torch.no_grad():
             predictions = self(user_tensor, movie_tensor)
-
         result_df = data.copy()
         result_df["prediction"] = predictions.numpy()
         return result_df
@@ -88,7 +100,7 @@ class NCF(BaseModel, nn.Module):
     def _log_model_to_mlflow(self, run_name: str):
         """NCF 모델을 로깅"""
         print("Using mlflow.pytorch.log_model for NCF...")
-        mlflow.pytorch.log_model(
-            pytorch_model=self,
+        mlflow.pyfunc.log_model(
+            python_model=NCFWrapper(self),
             name=run_name,
         )

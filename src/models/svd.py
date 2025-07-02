@@ -1,100 +1,76 @@
-import numpy as np
 import pandas as pd
+import numpy as np
 import mlflow
 from surprise import SVD as SurpriseSVD
 from surprise import Reader, Dataset
 from surprise.model_selection import cross_validate
 
 from src.models.base_model import BaseModel
-
-
-class _SVDWrapper(mlflow.pyfunc.PythonModel):
-    """MLflow 로깅을 위한 SVD 모델 래퍼 클래스."""
-
-    def __init__(self, model):
-        self.model = model
-
-    def predict(self, context, model_input):
-        predictions = []
-        for _, row in model_input.iterrows():
-            # Data 구조를 알고 있다는 가정 하에 작성.
-            # input Data는 레이블을 제외한 데이터프레임.
-            pred = self.model.predict(row["userId"], row["movieId"])
-            predictions.append(pred.est)
-        model_input["prediction"] = predictions
-        return model_input
+from src.models.wrapper import Wrapper
 
 
 class SVD(BaseModel):
     """SVD모델. BaseModel을 상속받아 구현함."""
 
+    def __init__(self, params: dict):
+        super().__init__(params)
+
     def train_model(self, data: pd.DataFrame):
         """Surprise 라이브러리를 통해 SVD 학습."""
         print("Training SVD model...")
-        reader = Reader(rating_scale=(0.5, 5))
-        # 데이터 구조를 알고 있다는 가정 하에 작성.
+        reader = Reader(rating_scale=(0.5, 5.0))
         train_data = Dataset.load_from_df(data[["userId", "movieId", "rating"]], reader)
 
-        print("Performing 5-fold cross-validataion...")
+        # cross_validate를 위해 새로운 모델 객체를 생성.
+        svd_for_cv = SurpriseSVD(**self.params)
+        print("Performing 5-fold cross-validation...")
         cv_results = cross_validate(
-            SurpriseSVD(**self.params),
-            train_data,
-            measures=["RMSE", "MAE"],
-            cv=5,
-            verbose=True,
+            svd_for_cv, train_data, measures=["RMSE", "MAE"], cv=5, verbose=False
         )
 
         mean_rmse = np.mean(cv_results["test_rmse"])
         mean_mae = np.mean(cv_results["test_mae"])
-
         print(
             f"Cross-validation results: Mean RMSE={mean_rmse:.4f}, Mean MAE={mean_mae:.4f}"
         )
         mlflow.log_metrics({"svd_mean_rmse": mean_rmse, "svd_mean_mae": mean_mae})
 
+        # 최종 모델 학습
         trainset = train_data.build_full_trainset()
         self._model = SurpriseSVD(**self.params)
         self._model.fit(trainset)
+        self._trained = True
         print("SVD model training complete.")
 
     def predict(self, data: pd.DataFrame) -> pd.DataFrame:
-        """
-        학습된 SVD 모델로 예측을 수행.
+        """학습된 SVD 모델로 예측을 수행"""
+        if not self._trained:
+            raise ValueError(
+                "Model has not been trained yet. Call train_model() first."
+            )
 
-        Args:
-            data (pd.DataFrame): 예측에 사용할 'userId', 'itemId' 컬럼을 가진 데이터프레임.
+        reader = Reader(rating_scale=(0.5, 5.0))
+        predict_data = data.copy()
+        if "rating" not in predict_data.columns:
+            predict_data["rating"] = 0
 
-        Returns:
-            pd.DataFrame: 입력 데이터에 'prediction' 컬럼이 추가된 데이터프레임.
-        """
-        if self._model is None:
-            raise ValueError("Model has not been trained yet. Call train() first.")
-
-        reader = Reader(rating_scale=(0.5, 5))
-        test_data = Dataset.load_from_df(data[["userId", "movieId"]], reader)
-        testset = test_data.build_full_trainset().build_testset()
-
-        predictions = self._model.test(testset)
-        pred_map = {(pred.uid, pred.iid): pred.est for pred in predictions}
-
-        result_df = data.copy()
-        result_df["prediction"] = result_df.apply(
-            lambda row: pred_map.get((row["userId"], row["movieId"])), axis=1
+        surprise_dataset = Dataset.load_from_df(
+            predict_data[["userId", "movieId", "rating"]], reader
         )
+        testset = surprise_dataset.build_full_trainset().build_testset()
+        predictions = self._model.test(testset)
 
+        predictions_df = pd.DataFrame(
+            [(pred.uid, pred.iid, pred.est) for pred in predictions],
+            columns=["userId", "movieId", "prediction"],
+        )
+        result_df = pd.merge(data, predictions_df, on=["userId", "movieId"], how="left")
         return result_df
 
-    def _create_mlflow_wrapper(self):
-        return _SVDWrapper(self.get_model())
-
     def _log_model_to_mlflow(self, run_name: str):
-        """SVD 모델을 로깅."""
-        print("Using mlflow.pyfunc.log_model for SVD...")
-
-        input_example = pd.DataFrame({"userId": [0], "movieId": [0]})
-
+        """SVD 모델을 로깅합니다."""
+        print("Using mlflow.pyfunc.log_model for SVD with custom wrapper...")
         mlflow.pyfunc.log_model(
             name=run_name,
-            python_model=self._create_mlflow_wrapper(),
-            input_example=input_example,
+            python_model=Wrapper(model=self),
         )

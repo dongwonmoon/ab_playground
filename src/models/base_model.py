@@ -14,7 +14,7 @@ class BaseModel(ABC):
             params (dict): 모델의 하이퍼파라미터 딕셔너리
         """
         self.params = params
-        self._model = None  # 실제 모델 객체를 저장
+        self._trained = False
 
     @abstractmethod
     def train_model(self, data: pd.DataFrame):
@@ -38,28 +38,6 @@ class BaseModel(ABC):
             pd.DataFrame: 예측 결과 (Columns: userId, movieId, prediction)
         """
         pass
-
-    def get_model(self):
-        """실제 학습된 모델 반환"""
-        if self._model is None:
-            raise ValueError("Model has not been trained yet. Call train() first.")
-        return self._model
-
-    def log_to_mlflow(self, run_name: str):
-        """
-        학습된 모델과 파라미터를 MLflow에 로깅함.
-        MLFlow는 running 중인 상태를 가정.
-
-        Args:
-            experiment_name (str): MLflow 실험 이름
-            run_name (str): 이번 실행의 이름
-        """
-        print(f"Logging parameters and model for {run_name}...")
-        mlflow.log_params(self.params)
-
-        self._log_model_to_mlflow(run_name=run_name)
-
-        print(f"Successfully logged model for {run_name}.")
 
     @abstractmethod
     def _log_model_to_mlflow(self, run_name: str):
