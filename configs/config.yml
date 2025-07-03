@@ -16,6 +16,13 @@ models:
       n_factors: 50
       n_epochs: 20
       random_state: 42
+  svd_pytorch:
+    params:
+      epochs: 20
+      batch_size: 256
+      n_factors: 50
+      learning_rate: 0.001
+      reg_lambda: 0.01
   ncf:
     params:
       epochs: 5
