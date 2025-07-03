@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import tqdm
 
 
 class ABTestSimulator:
@@ -15,11 +16,19 @@ class ABTestSimulator:
         self.__num_A = num_A
         self.__num_B = num_B
 
+    def get_group_a(self):
+        return self.__num_A
+
+    def get_group_b(self):
+        return self.__num_B
+
     def sample_group(self):
         df = self.test_df.copy()
         group_A = df.sample(self.__num_A)
         df.drop(group_A.index, inplace=True)
         group_B = df.sample(self.__num_B)
+
+        del df
         return group_A, group_B
 
     def run_simulation(
@@ -34,11 +43,15 @@ class ABTestSimulator:
         group_A, group_B = self.sample_group()
 
         conversions_a = 0
-        for user_id in group_A:
+        conversions_b = 0
+
+        print("\n --- Model A Starting ---")
+        for user_id in tqdm.tqdm(group_A["userId"]):
             if self._get_hit_for_user(model_a, user_id, top_k, success_threshold):
                 conversions_a += 1
 
-        for user_id in group_B:
+        print("\n --- Model B Starting ---")
+        for user_id in tqdm.tqdm(group_B["userId"]):
             if self._get_hit_for_user(model_b, user_id, top_k, success_threshold):
                 conversions_b += 1
 
@@ -50,7 +63,11 @@ class ABTestSimulator:
         }
 
     def _get_hit_for_user(
-        self, model, user_id: int, top_k: int, success_threshold: float
+        self,
+        model,
+        user_id: int,
+        top_k: int,
+        success_threshold: float,
     ) -> bool:
         """
         특정 사용자에 대해 모델의 추천이 "Hit" 했는 지 여부를 반환.
@@ -66,12 +83,12 @@ class ABTestSimulator:
         )
 
         predictions = model.predict(predict_df)
+
         top_k_recs = predictions.nlargest(top_k, "prediction")["movieId"].values
 
         ground_truth = self.test_df[
-            self.test_df["userId"]
-            == user_id & self.test_df["rating"]
-            >= success_threshold
+            (self.test_df["userId"] == user_id)
+            & (self.test_df["rating"] >= success_threshold)
         ]["movieId"].values
 
         is_hit = len(np.intersect1d(top_k_recs, ground_truth)) > 0
