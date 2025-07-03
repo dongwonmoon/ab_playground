@@ -1,8 +1,8 @@
 # Recommendation System A/B Testing Simulation Platform
 
 ## 0. Data
-데이터는 MovieLens-tiny 데이터를 사용했습니다.
-A/B 시뮬레이션을 해야하지만, 실제 사용자를 구하기는 힘드므로, 데이터를 적절히 Split하여 사용했습니다.
+데이터는 MovieLens-tiny 데이터를 사용했습니다. \
+A/B 시뮬레이션을 해야하지만, 실제 사용자를 구하기는 힘드므로, 데이터를 적절히 Split하여 사용했습니다. \
 자세한 내용은 `notebooks` 디렉토리를 참조해주세요.
 
 ## 1. 프로젝트 개요
