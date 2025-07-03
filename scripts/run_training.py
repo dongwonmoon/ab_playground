@@ -1,16 +1,10 @@
-### 추후 개선 ###
-import os
-import sys
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-### 추후 개선 ###
-
 import mlflow
 import pandas as pd
 
 from src.utils.config_loader import load_config
 from src.models.ncf import NCF
 from src.models.svd import SVD
+from src.models.svd_pytorch import SVD_PyTorch
 from src.data.preprocessing import mapping_id_to_unique
 
 
@@ -50,6 +44,12 @@ def run_training():
                 )
             elif model_name == "svd":
                 model = SVD(params=model_config["params"])
+            elif model_name == "svd_pytorch":
+                model = SVD_PyTorch(
+                    params=model_config["params"],
+                    num_users=num_users,
+                    num_movies=num_movies,
+                )
 
             model.train_model(train_df)
             print(f"Logging {model_name.upper()} to MLflow...")
