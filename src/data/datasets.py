@@ -5,11 +5,8 @@ import pandas as pd
 
 class CustomDataset(Dataset):
     def __init__(self, df: pd.DataFrame):
-        if sorted(["userId", "movieId", "rating"]) != sorted(df.columns):
+        if not set(df.columns).issuperset(set(["userId", "movieId", "rating"])):
             raise ValueError("Column must be userId, movieId, rating.")
-
-        if not df["rating"]:
-            df["rating"] = 0
 
         self.users = torch.tensor(df["userId"].values, dtype=torch.long)
         self.movies = torch.tensor(df["movieId"].values, dtype=torch.long)
