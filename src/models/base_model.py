@@ -43,3 +43,7 @@ class BaseModel(ABC):
     def _log_model_to_mlflow(self, run_name: str):
         """각 자식 클래스가 자신의 타입(pytorch, python, ...)에 맞게 모델 로깅 구현"""
         pass
+
+    def log_to_mlflow(self, run_name: str):
+        self._log_model_to_mlflow(run_name)
+        mlflow.log_params(self.params)
