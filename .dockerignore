@@ -1,0 +1,24 @@
+# Git
+.git
+.gitignore
+
+# MLflow
+mlruns/
+mlruns_artifacts/
+mlruns_db/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Notebooks
+notebooks/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

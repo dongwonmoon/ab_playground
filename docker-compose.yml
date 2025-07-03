@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mlflow_server
+    command: >
+      conda run -n ab_playground mlflow server
+      --backend-store-uri sqlite:///mlruns_db/mlflow.db
+      --default-artifact-root ./mlruns_artifacts
+      --host 0.0.0.0
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns_db:/app/mlruns_db
+      - ./mlruns_artifacts:/app/mlruns_artifacts
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: streamlit_dashboard
+    command: >
+      conda run -n ab_playground python -m scripts.run_dashboard
+      --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    depends_on:
+      - mlflow
+    volumes:
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - ./configs:/app/configs
+      - ./data:/app/data
+
+  training:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: model_training
+    command: >
+      conda run -n ab_playground python -m scripts.run_training
+    depends_on:
+      - mlflow
+    volumes:
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - ./configs:/app/configs
+      - ./data:/app/data
+      - ./mlruns_db:/app/mlruns_db
+      - ./mlruns_artifacts:/app/mlruns_artifacts
