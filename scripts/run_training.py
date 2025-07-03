@@ -1,5 +1,6 @@
 import mlflow
 import pandas as pd
+import time
 
 from src.utils.config_loader import load_config
 from src.models.ncf import NCF
@@ -34,7 +35,7 @@ def run_training():
     print("\n--- Starting Training and Logging ---")
 
     for model_name in config["models"]:
-        with mlflow.start_run(run_name=model_name.upper()):
+        with mlflow.start_run(run_name=model_name.upper()) as run:
             model_config = config["models"][model_name]
             if model_name == "ncf":
                 model = NCF(
@@ -51,7 +52,12 @@ def run_training():
                     num_movies=num_movies,
                 )
 
+            start_time = time.time()
             model.train_model(train_df)
+            end_time = time.time()
+            training_time = end_time - start_time
+            mlflow.log_metric("training_time", training_time)
+
             print(f"Logging {model_name.upper()} to MLflow...")
             model.log_to_mlflow(
                 run_name=model_name.upper(),
