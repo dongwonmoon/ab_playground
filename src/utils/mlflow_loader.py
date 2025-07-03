@@ -61,23 +61,27 @@ class MLflowLoader:
                      'NCF': {'metrics': {...}, 'params': {...}, 'training_time': ...}}
         """
         metrics_and_params = {}
-        I_GOT_INDEX = False
+        client = mlflow.tracking.MlflowClient()
+
         for model_name, (_, run_obj) in runs.items():
-            if not I_GOT_INDEX:
-                metrics = run_obj.index.str.contains("metrics")
-                params = run_obj.index.str.contains("params")
-                I_GOT_INDEX = True
-            training_time = run_obj["end_time"] - run_obj["start_time"]
+            run_id = run_obj.run_id
+            run = client.get_run(run_id)
+
+            # Get metrics, including the explicitly logged training_time
+            metrics = run.data.metrics
+            params = run.data.params
+
+            # Use the logged training_time if available, otherwise calculate it.
+            training_time = metrics.get("training_time")
+            if training_time is None:
+                training_time = (
+                    run.info.end_time - run.info.start_time
+                ) / 1000.0  # Convert ms to seconds
+
             metrics_and_params[model_name] = {
-                "metrics": {
-                    key: value
-                    for key, value in zip(run_obj[metrics].index, run_obj[metrics])
-                },
-                "params": {
-                    key: value
-                    for key, value in zip(run_obj[params].index, run_obj[params])
-                },
-                "training_time": training_time.total_seconds(),
+                "metrics": metrics,
+                "params": params,
+                "training_time": training_time,
             }
 
         return metrics_and_params
