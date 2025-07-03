@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import tqdm
+import time
 
 
 class ABTestSimulator:
@@ -37,8 +38,9 @@ class ABTestSimulator:
         """
         두 모델(A, B)을 받아 각 사용자에 대한 추천을 생성하고,
         실제 평점(ground truth)을 기반으로 '성공(전환)' 여부를 판단합니다.
-        - Return: {'visitors_a': ..., 'conversions_a': ...,
-                     'visitors_b': ..., 'conversions_b': ...}
+        - Return: {'visitors_a': ..., 'conversions_a': ..., 
+                     'visitors_b': ..., 'conversions_b': ..., 
+                     'inference_time_a': ..., 'inference_time_b': ...}
         """
         group_A, group_B = self.sample_group()
 
@@ -46,20 +48,28 @@ class ABTestSimulator:
         conversions_b = 0
 
         print("\n --- Model A Starting ---")
+        start_time_a = time.time()
         for user_id in tqdm.tqdm(group_A["userId"]):
             if self._get_hit_for_user(model_a, user_id, top_k, success_threshold):
                 conversions_a += 1
+        end_time_a = time.time()
+        inference_time_a = end_time_a - start_time_a
 
         print("\n --- Model B Starting ---")
+        start_time_b = time.time()
         for user_id in tqdm.tqdm(group_B["userId"]):
             if self._get_hit_for_user(model_b, user_id, top_k, success_threshold):
                 conversions_b += 1
+        end_time_b = time.time()
+        inference_time_b = end_time_b - start_time_b
 
         return {
             "visitors_a": self.__num_A,
             "conversions_a": conversions_a,
             "visitors_b": self.__num_B,
             "conversions_b": conversions_b,
+            "inference_time_a": inference_time_a,
+            "inference_time_b": inference_time_b,
         }
 
     def _get_hit_for_user(
